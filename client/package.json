@@ -6,7 +6,7 @@
   "scripts": {
     "start": "parcel --hmr-port 1235 src/index.html",
     "dev": "npm start",
-    "build": "npm run build",
+    "build": "parcel build src/index.html",
     "docker": "npm install && npm run dev"
   },
   "keywords": [],
