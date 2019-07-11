@@ -9,14 +9,9 @@ type alias Flags =
     ()
 
 
-type Model
-    = MainMenu
-    | InLobby Id
-    | InGame Id Game
-
-
-type alias Id =
-    String
+type alias Model =
+    { game : Game
+    }
 
 
 type Msg
@@ -35,24 +30,23 @@ main =
 
 init : Flags -> ( Model, Cmd Msg )
 init flags =
-    ( InGame "1234" Game.init, Cmd.none )
+    ( Model Game.init
+    , Cmd.none
+    )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case ( model, msg ) of
-        ( InGame id game, ClickSquare player ( x, y ) ) ->
-            ( InGame id (Game.update player ( x, y ) game)
+    case msg of
+        ClickSquare player ( x, y ) ->
+            ( { model | game = Game.update player ( x, y ) model.game }
             , Cmd.none
             )
 
-        ( InGame id _, NewGame ) ->
-            ( InGame id Game.init
+        NewGame ->
+            ( { model | game = Game.init }
             , Cmd.none
             )
-
-        ( _, _ ) ->
-            ( model, Cmd.none )
 
 
 subscriptions : Model -> Sub Msg
@@ -62,27 +56,4 @@ subscriptions model =
 
 view : Model -> Element Msg
 view model =
-    case model of
-        MainMenu ->
-            viewMainMenu
-
-        InLobby id ->
-            viewLobby id
-
-        InGame id game ->
-            viewGame id game
-
-
-viewMainMenu : Element Msg
-viewMainMenu =
-    text "TODO: Main menu"
-
-
-viewLobby : Id -> Element Msg
-viewLobby id =
-    text "TODO: Player lobby"
-
-
-viewGame : Id -> Game -> Element Msg
-viewGame id game =
-    Game.view NewGame ClickSquare game
+    Game.view NewGame ClickSquare model.game
