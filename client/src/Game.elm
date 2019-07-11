@@ -8,9 +8,7 @@ module Game exposing
     , view
     )
 
-import Array exposing (Array)
 import Element exposing (..)
-import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
@@ -49,11 +47,21 @@ update player location game =
     let
         updatedBoard : Board
         updatedBoard =
-            Grid.set (Just player) location game.board
+            case Grid.get location game.board |> Maybe.withDefault Nothing of
+                Just _ ->
+                    game.board
+
+                Nothing ->
+                    Grid.set (Just player) location game.board
     in
     { game
         | board = updatedBoard
-        , state = nextState updatedBoard game.state
+        , state =
+            if game.board == updatedBoard then
+                game.state
+
+            else
+                nextState updatedBoard game.state
     }
 
 
