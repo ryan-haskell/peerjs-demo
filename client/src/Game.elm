@@ -14,6 +14,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
+import Grid exposing (Grid)
 
 
 type alias Game =
@@ -23,12 +24,12 @@ type alias Game =
 
 
 type alias Board =
-    Array (Array (Maybe Player))
+    Grid (Maybe Player)
 
 
 type GameState
     = PlayerTurn Player
-    | Winner Player
+    | Winner (Maybe Player)
 
 
 type Player
@@ -39,15 +40,16 @@ type Player
 init : Game
 init =
     Game
-        (Array.initialize 3 (always (Array.initialize 3 (always Nothing))))
+        (Grid.init ( 3, 3 ) Nothing)
         (PlayerTurn X)
 
 
 update : Player -> ( Int, Int ) -> Game -> Game
 update player location game =
     let
+        updatedBoard : Board
         updatedBoard =
-            placePiece player location game.board
+            Grid.set (Just player) location game.board
     in
     { game
         | board = updatedBoard
@@ -55,30 +57,29 @@ update player location game =
     }
 
 
-placePiece : Player -> ( Int, Int ) -> Board -> Board
-placePiece player ( x, y ) board =
-    Array.get y board
-        |> Maybe.map (\row -> Array.set y (Array.set x (Just player) row) board)
-        |> Maybe.withDefault board
-
-
 nextState : Board -> GameState -> GameState
 nextState board state =
     case state of
         PlayerTurn player ->
             if hasWinner board then
-                Winner player
+                Winner (Just player)
+
+            else if boardIsFull board then
+                Winner Nothing
 
             else
                 PlayerTurn (other player)
 
-        Winner player ->
+        Winner (Just player) ->
             PlayerTurn (other player)
+
+        Winner Nothing ->
+            PlayerTurn X
 
 
 hasWinner : Board -> Bool
 hasWinner board =
-    List.any (haveSameValue board)
+    List.any (haveSamePlayer board)
         [ [ ( 0, 0 ), ( 1, 0 ), ( 2, 0 ) ]
         , [ ( 0, 1 ), ( 1, 1 ), ( 2, 1 ) ]
         , [ ( 0, 2 ), ( 1, 2 ), ( 2, 2 ) ]
@@ -90,17 +91,16 @@ hasWinner board =
         ]
 
 
-haveSameValue : Board -> List ( Int, Int ) -> Bool
-haveSameValue board =
-    List.map (get board)
-        >> (\values -> List.all ((==) (Just X)) values || List.all ((==) (Just O)) values)
+boardIsFull : Board -> Bool
+boardIsFull =
+    Grid.every ((/=) Nothing)
 
 
-get : Board -> ( Int, Int ) -> Maybe Player
-get board ( x, y ) =
-    Array.get y board
-        |> Maybe.andThen (\row -> Array.get x row)
-        |> Maybe.withDefault Nothing
+haveSamePlayer : Board -> List ( Int, Int ) -> Bool
+haveSamePlayer board locations =
+    List.map (\location -> Grid.get location board) locations
+        |> List.map (Maybe.withDefault Nothing)
+        |> (\values -> List.all ((==) (Just X)) values || List.all ((==) (Just O)) values)
 
 
 view : msg -> (Player -> ( Int, Int ) -> msg) -> Game -> Element msg
@@ -114,18 +114,25 @@ view newGame onClick game =
         case game.state of
             PlayerTurn player ->
                 column [ spacing 16 ]
-                    [ el [ Font.size 16 ] (text ("Player " ++ toString player ++ ", it's your turn."))
+                    [ el [ Font.size 16 ] (text ("Player " ++ toString player ++ "'s move."))
                     , column [ centerX, Border.width 1 ]
-                        (Array.indexedMap
+                        (List.indexedMap
                             (viewRow (onClick player))
-                            game.board
-                            |> Array.toList
+                            (Grid.toListOfLists game.board)
                         )
                     ]
 
-            Winner player ->
+            Winner winner ->
                 column [ spacing 24 ]
-                    [ text ("Player " ++ toString player ++ ", you won!")
+                    [ el [ centerX ]
+                        (text <|
+                            case winner of
+                                Just player ->
+                                    "Player " ++ toString player ++ ", you won!"
+
+                                Nothing ->
+                                    "Tie game!"
+                        )
                     , Input.button
                         [ Border.width 2
                         , Border.rounded 4
@@ -139,9 +146,9 @@ view newGame onClick game =
                     ]
 
 
-viewRow : (( Int, Int ) -> msg) -> Int -> Array (Maybe Player) -> Element msg
+viewRow : (( Int, Int ) -> msg) -> Int -> List (Maybe Player) -> Element msg
 viewRow onClick y row =
-    Element.row [] (Array.indexedMap (viewSquare onClick y) row |> Array.toList)
+    Element.row [] (List.indexedMap (viewSquare onClick y) row)
 
 
 viewSquare : (( Int, Int ) -> msg) -> Int -> Int -> Maybe Player -> Element msg
