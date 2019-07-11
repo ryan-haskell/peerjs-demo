@@ -1,6 +1,7 @@
 import { Elm } from './Main.elm'
 
 const config = {
+  secure: process.env.PEERJS_SECURE === 'true',
   host: process.env.PEERJS_HOST || 'localhost',
   port: parseInt(process.env.PEERJS_PORT) || 9000,
   path: process.env.PEERJS_PATH || '/myapp'
@@ -11,9 +12,8 @@ const send = (conn, msg) => _ => {
   window.requestAnimationFrame(send(conn, msg))
 }
 
-const rtc = {
-  host: ({ onData, onUrl }) => {
-    const id = Date.now()
+window.rtc = {
+  host: ({ id, onData, onUrl }) => {
     const peer = new window.Peer(id, config)
     peer.on('open', function (id) {
       const { host, protocol } = window.location
@@ -29,13 +29,12 @@ const rtc = {
       })
     })
   },
-  join: (options) => {
-    const id = Date.now()
+  join: ({ id, serverId, onData }) => {
     const peer = new window.Peer(id, config)
-    const conn = peer.connect(options.id)
+    const conn = peer.connect(serverId)
     conn.on('open', function () {
       // Receive messages
-      conn.on('data', options.onData)
+      conn.on('data', onData)
       // Send messages
       window.requestAnimationFrame(send(conn, 'Hello from client!'))
     })
@@ -58,3 +57,9 @@ const start = () => {
 }
 
 start()
+
+window.rtc.host({
+  id: Date.now(),
+  onData: console.log,
+  onUrl: console.log
+})
