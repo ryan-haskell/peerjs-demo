@@ -1,0 +1,22 @@
+{
+  "name": "peerjs-demo",
+  "version": "1.0.0",
+  "description": "> im making a game dangnabbit!!",
+  "main": "index.js",
+  "dependencies": {},
+  "devDependencies": {},
+  "scripts": {
+    "start": "cd server && npm install && npm start"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ryannhg/peerjs-demo.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ryannhg/peerjs-demo/issues"
+  },
+  "homepage": "https://github.com/ryannhg/peerjs-demo#readme"
+}
