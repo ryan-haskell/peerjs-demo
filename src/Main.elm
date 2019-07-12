@@ -68,7 +68,7 @@ update msg model =
 
         ( _, RequestToHostGame ) ->
             ( model
-            , Ports.outgoing "HOST_GAME"
+            , Ports.hostGame
             )
 
         ( _, NewGame ) ->
@@ -87,7 +87,9 @@ update msg model =
             )
 
         ( JoinLobby id, ReadyUp ) ->
-            ( model, Cmd.none )
+            ( model
+            , Ports.readyUp id
+            )
 
         ( HostLobby url, ReadyUp ) ->
             ( model, Cmd.none )

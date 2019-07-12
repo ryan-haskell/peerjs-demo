@@ -50,15 +50,21 @@ const start = () => {
     }
   })
 
-  app.ports.outgoing.subscribe(function (msg) {
-    switch (msg) {
+  app.ports.outgoing.subscribe(function ({ action, payload }) {
+    switch (action) {
       case 'HOST_GAME':
-        rtc.host({
+        return rtc.host({
           id: Date.now(),
           onData: console.log
         })
           .then(url => app.ports.incoming.send(url))
           .catch(console.error)
+      case 'READY_UP':
+        return rtc.join({
+          id: Date.now(),
+          serverId: payload,
+          onData: console.log
+        })
     }
   })
 }
