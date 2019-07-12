@@ -54,11 +54,6 @@ fromJs handler =
                     handler message
 
                 Err reason ->
-                    let
-                        _ =
-                            (Debug.log "INCOMING ERROR" reason)
-
-                    in
                     handler GotTrash
         )
 

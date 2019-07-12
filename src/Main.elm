@@ -118,11 +118,6 @@ update msg model =
                                     ( InGame u game, Cmd.none )
 
                                 Err reason ->
-                                    let
-                                        _ =
-                                            Debug.log "GAME" reason
-                                    in
-                                    
                                     ( model
                                     , Cmd.none
                                     )
