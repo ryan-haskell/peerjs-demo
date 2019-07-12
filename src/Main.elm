@@ -28,7 +28,7 @@ type Msg
     | NewGame
     | QuitGame
     | RequestToHostGame
-    | FromJs String
+    | FromJs Ports.IncomingMessage
     | ReadyUp
 
 
@@ -81,10 +81,22 @@ update msg model =
             , Cmd.none
             )
 
-        ( _, FromJs url ) ->
-            ( HostLobby url
-            , Cmd.none
-            )
+        ( _, FromJs message ) ->
+            case message of
+                Ports.HostUrl url ->
+                    ( HostLobby url
+                    , Cmd.none
+                    )
+
+                Ports.FriendReady id ->
+                    ( InGame Game.init
+                    , Cmd.none
+                    )
+
+                Ports.GotTrash ->
+                    ( model
+                    , Cmd.none
+                    )
 
         ( JoinLobby id, ReadyUp ) ->
             ( model
@@ -100,7 +112,7 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Ports.incoming FromJs
+    Ports.fromJs FromJs
 
 
 view : Model -> Element Msg
@@ -152,6 +164,7 @@ viewHostLobby url =
         [ el
             [ Font.size 32
             , Font.semiBold
+            , centerX
             ]
             (text "waiting for a pal")
         , column [ Font.size 14, spacing 8, centerX ]

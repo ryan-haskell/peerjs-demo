@@ -1,10 +1,7 @@
 import { Elm } from './Main.elm'
 
-const config = {}
-
-const send = (conn, msg) => _ => {
-  conn.send(msg)
-  window.requestAnimationFrame(send(conn, msg))
+const config = {
+  reliable: true
 }
 
 window.rtc = {
@@ -24,7 +21,7 @@ window.rtc = {
           // Receive messages
           conn.on('data', onData)
           // Send messages
-          window.requestAnimationFrame(send(conn, 'Hello from server!'))
+          conn.send({ id })
         })
       })
   }),
@@ -35,10 +32,11 @@ window.rtc = {
       // Receive messages
       conn.on('data', onData)
       // Send messages
-      window.requestAnimationFrame(send(conn, 'Hello from client!'))
+      conn.send({ id })
     })
   }
 }
+
 
 const start = () => {
   const serverId = window.location.search.slice('?id='.length) || null
@@ -50,20 +48,26 @@ const start = () => {
     }
   })
 
+  const onData = msg =>
+    app.ports.incoming.send({ action: 'FRIEND_READY', id: String(msg.id) })
+
   app.ports.outgoing.subscribe(function ({ action, payload }) {
     switch (action) {
       case 'HOST_GAME':
         return rtc.host({
           id: Date.now(),
-          onData: console.log
+          onData
         })
-          .then(url => app.ports.incoming.send(url))
+          .then(url => app.ports.incoming.send({
+            action: 'HOST_URL',
+            url
+          }))
           .catch(console.error)
       case 'READY_UP':
         return rtc.join({
           id: Date.now(),
           serverId: payload,
-          onData: console.log
+          onData
         })
     }
   })
