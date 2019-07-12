@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "parcel --hmr-port 1235 src/index.html",
+    "start": "parcel src/index.html",
     "dev": "npm start",
     "build": "parcel build src/index.html",
     "docker": "npm install && npm run dev"

@@ -2,6 +2,10 @@ module Main exposing (main)
 
 import Browser exposing (UrlRequest(..))
 import Element exposing (..)
+import Element.Background as Background
+import Element.Border as Border
+import Element.Font as Font
+import Element.Input as Input
 import Game exposing (..)
 
 
@@ -9,9 +13,9 @@ type alias Flags =
     ()
 
 
-type alias Model =
-    { game : Game
-    }
+type Model
+    = MainMenu
+    | InGame Game
 
 
 type Msg
@@ -30,21 +34,26 @@ main =
 
 init : Flags -> ( Model, Cmd Msg )
 init flags =
-    ( Model Game.init
+    ( MainMenu
     , Cmd.none
     )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case msg of
-        ClickSquare player ( x, y ) ->
-            ( { model | game = Game.update player ( x, y ) model.game }
+    case ( model, msg ) of
+        ( InGame game, ClickSquare player ( x, y ) ) ->
+            ( InGame (Game.update player ( x, y ) game)
             , Cmd.none
             )
 
-        NewGame ->
-            ( { model | game = Game.init }
+        ( MainMenu, ClickSquare _ _ ) ->
+            ( model
+            , Cmd.none
+            )
+
+        ( _, NewGame ) ->
+            ( InGame Game.init
             , Cmd.none
             )
 
@@ -56,4 +65,43 @@ subscriptions model =
 
 view : Model -> Element Msg
 view model =
-    Game.view NewGame ClickSquare model.game
+    case model of
+        MainMenu ->
+            viewMainMenu
+
+        InGame game ->
+            Game.view NewGame ClickSquare game
+
+
+colors =
+    { white = rgb 1 1 1
+    , black = rgb 0 0 0
+    }
+
+
+viewMainMenu : Element Msg
+viewMainMenu =
+    column
+        [ centerX
+        , centerY
+        , Font.family [ Font.monospace ]
+        , spacing 16
+        ]
+        [ el
+            [ Font.size 32
+            , Font.semiBold
+            ]
+            (text "tic-tac-whoa")
+        , column [ centerX ]
+            [ Input.button
+                [ Border.rounded 4
+                , Border.width 2
+                , Background.color colors.white
+                , Font.color colors.black
+                , paddingXY 20 10
+                ]
+                { onPress = Just NewGame
+                , label = text "Create game"
+                }
+            ]
+        ]
