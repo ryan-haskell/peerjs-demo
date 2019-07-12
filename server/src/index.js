@@ -103,7 +103,6 @@ function PeerServer (options = {}, callback) {
 
   if (options.ssl && options.ssl.key && options.ssl.cert) {
     server = https.createServer(options.ssl, app);
-    console.log('SSL', options.ssl)
     delete options.ssl;
   } else {
     server = http.createServer(app);
