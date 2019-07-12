@@ -122,8 +122,8 @@ view quitGame newGame onClick game =
         ]
         [ case game.state of
             PlayerTurn player ->
-                column [ spacing 16, centerX ]
-                    [ el [ Font.size 16 ] (text ("Player " ++ toString player ++ "'s move."))
+                column [ spacing 24, centerX ]
+                    [ el [ Font.size 20, Font.semiBold ] (text ("Player " ++ toString player ++ "'s move"))
                     , column [ centerX, Border.width 1 ]
                         (List.indexedMap
                             (viewRow (onClick player))
