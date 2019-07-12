@@ -7,6 +7,7 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Game exposing (..)
+import Style exposing (styles)
 
 
 type alias Flags =
@@ -21,6 +22,7 @@ type Model
 type Msg
     = ClickSquare Player ( Int, Int )
     | NewGame
+    | QuitGame
 
 
 main =
@@ -57,6 +59,11 @@ update msg model =
             , Cmd.none
             )
 
+        ( _, QuitGame ) ->
+            ( MainMenu
+            , Cmd.none
+            )
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
@@ -70,13 +77,7 @@ view model =
             viewMainMenu
 
         InGame game ->
-            Game.view NewGame ClickSquare game
-
-
-colors =
-    { white = rgb 1 1 1
-    , black = rgb 0 0 0
-    }
+            Game.view QuitGame NewGame ClickSquare game
 
 
 viewMainMenu : Element Msg
@@ -85,7 +86,7 @@ viewMainMenu =
         [ centerX
         , centerY
         , Font.family [ Font.monospace ]
-        , spacing 16
+        , spacing 32
         ]
         [ el
             [ Font.size 32
@@ -93,15 +94,9 @@ viewMainMenu =
             ]
             (text "tic-tac-whoa")
         , column [ centerX ]
-            [ Input.button
-                [ Border.rounded 4
-                , Border.width 2
-                , Background.color colors.white
-                , Font.color colors.black
-                , paddingXY 20 10
-                ]
+            [ Input.button styles.buttons.success
                 { onPress = Just NewGame
-                , label = text "Create game"
+                , label = text "play"
                 }
             ]
         ]

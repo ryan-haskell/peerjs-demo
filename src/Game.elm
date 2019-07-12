@@ -13,6 +13,7 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Grid exposing (Grid)
+import Style exposing (styles)
 
 
 type alias Game =
@@ -111,17 +112,17 @@ haveSamePlayer board locations =
         |> (\values -> List.all ((==) (Just X)) values || List.all ((==) (Just O)) values)
 
 
-view : msg -> (Player -> ( Int, Int ) -> msg) -> Game -> Element msg
-view newGame onClick game =
-    el
+view : msg -> msg -> (Player -> ( Int, Int ) -> msg) -> Game -> Element msg
+view quitGame newGame onClick game =
+    column
         [ centerX
         , centerY
         , Font.family [ Font.monospace ]
+        , spacing 48
         ]
-    <|
-        case game.state of
+        [ case game.state of
             PlayerTurn player ->
-                column [ spacing 16 ]
+                column [ spacing 16, centerX ]
                     [ el [ Font.size 16 ] (text ("Player " ++ toString player ++ "'s move."))
                     , column [ centerX, Border.width 1 ]
                         (List.indexedMap
@@ -131,7 +132,7 @@ view newGame onClick game =
                     ]
 
             Winner winner ->
-                column [ spacing 24 ]
+                column [ spacing 24, centerX ]
                     [ el [ centerX ]
                         (text <|
                             case winner of
@@ -141,17 +142,20 @@ view newGame onClick game =
                                 Nothing ->
                                     "Tie game!"
                         )
-                    , Input.button
-                        [ Border.width 2
-                        , Border.rounded 4
-                        , pointer
-                        , paddingXY 20 10
-                        , centerX
-                        ]
-                        { onPress = Just newGame
-                        , label = text "Play again?"
-                        }
+                    , el [ centerX ] <|
+                        Input.button
+                            styles.buttons.default
+                            { onPress = Just newGame
+                            , label = text "Play again?"
+                            }
                     ]
+        , el [ centerX ] <|
+            Input.button
+                styles.buttons.danger
+                { onPress = Just quitGame
+                , label = text "quit"
+                }
+        ]
 
 
 viewRow : (( Int, Int ) -> msg) -> Int -> List (Maybe Player) -> Element msg
