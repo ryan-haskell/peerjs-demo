@@ -15,3 +15,6 @@ node_modules
 npm-debug.log
 
 .idea
+
+ssl/server.csr
+ssl/server.pass.key

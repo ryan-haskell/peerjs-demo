@@ -28,11 +28,17 @@ const opts = require('optimist')
     },
     sslkey: {
       demand: false,
-      description: 'path to SSL key'
+      description: 'path to SSL key',
+      default: process.env.NODE_ENV === 'production'
+        ? './ssl/server.key'
+        : undefined
     },
     sslcert: {
       demand: false,
-      description: 'path to SSL certificate'
+      description: 'path to SSL certificate',
+      default: process.env.NODE_ENV === 'production'
+        ? './ssl/server.crt'
+        : undefined
     },
     port: {
       demand: true,
