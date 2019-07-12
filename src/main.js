@@ -1,9 +1,8 @@
 import { Elm } from './Main.elm'
 
-const config = {
-  reliable: true
-}
+const config = {}
 
+// Stream actions, because UDP is maybes
 let localQueue = []
 let otherQueue = []
 
@@ -12,10 +11,9 @@ const streamActions = (conn) =>
   setInterval(_ => conn.send(localQueue), 100)
 
 const onOpen = ({ id, conn, onData }) => {
-  console.log('CONNECTED')
   streamActions(conn)
   // Receive messages
-  conn.on('data', msg => console.log('onData', msg) || onData(msg))
+  conn.on('data', onData)
   // Send messages
   perform({ action: 'FRIEND_READY', payload: String(id) })
 }
@@ -40,7 +38,7 @@ const rtc = {
     const peer = new window.Peer(id, config)
     const conn = peer.connect(serverId)
     conn.on('open', onOpen({ id, conn, onData }))
-  },
+  }
 }
 
 
@@ -55,19 +53,16 @@ const start = () => {
   })
 
   const onData = (latestOtherQueue) => {
-    console.log(latestOtherQueue)
     const changes = latestOtherQueue.slice(otherQueue.length)
     if (changes.length > 0) {
       otherQueue = latestOtherQueue
       changes.forEach(msg => {
-        console.log('INCOMING', msg)
         app.ports.incoming.send(msg)
       })
     }
   }
 
   app.ports.outgoing.subscribe(function ({ action, payload }) {
-    console.log('OUTGOING', { action, payload })
     switch (action) {
       case 'HOST_GAME':
         return rtc.host({
