@@ -9,6 +9,7 @@ import Element.Input as Input
 import Game exposing (..)
 import Ports
 import Style exposing (styles)
+import Json.Decode as D
 
 
 type alias Flags =
@@ -20,12 +21,12 @@ type Model
     = MainMenu
     | HostLobby String
     | JoinLobby String
-    | InGame Game
+    | InGame Player Game
 
 
 type Msg
     = ClickSquare Player ( Int, Int )
-    | NewGame
+    | NewGame Player
     | QuitGame
     | RequestToHostGame
     | FromJs Ports.IncomingMessage
@@ -56,9 +57,13 @@ init flags =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case ( model, msg ) of
-        ( InGame game, ClickSquare player ( x, y ) ) ->
-            ( InGame (Game.update player ( x, y ) game)
-            , Cmd.none
+        ( InGame u game, ClickSquare player ( x, y ) ) ->
+            let
+                updatedGame =
+                    Game.update player ( x, y ) game
+            in
+            ( InGame u updatedGame
+            , Ports.sendGame updatedGame
             )
 
         ( _, ClickSquare _ _ ) ->
@@ -71,9 +76,9 @@ update msg model =
             , Ports.hostGame
             )
 
-        ( _, NewGame ) ->
-            ( InGame Game.init
-            , Cmd.none
+        ( _, NewGame player ) ->
+            ( InGame player Game.init
+            , Ports.sendGame Game.init
             )
 
         ( _, QuitGame ) ->
@@ -89,9 +94,43 @@ update msg model =
                     )
 
                 Ports.FriendReady id ->
-                    ( InGame Game.init
+                    let
+                        player =
+                            case model of
+                                HostLobby _ ->
+                                    X
+
+                                JoinLobby _ ->
+                                    O
+
+                                _ ->
+                                    X
+                    in
+                    ( InGame player Game.init
                     , Cmd.none
                     )
+
+                Ports.GameReceived gameValue ->
+                    case model of
+                        InGame u _ ->
+                            case D.decodeValue Game.decoder gameValue of
+                                Ok game ->
+                                    ( InGame u game, Cmd.none )
+
+                                Err reason ->
+                                    let
+                                        _ =
+                                            Debug.log "GAME" reason
+                                    in
+                                    
+                                    ( model
+                                    , Cmd.none
+                                    )
+
+                        _ ->
+                            ( model
+                            , Cmd.none
+                            )
 
                 Ports.GotTrash ->
                     ( model
@@ -127,8 +166,8 @@ view model =
         JoinLobby id ->
             viewJoinLobby id
 
-        InGame game ->
-            Game.view QuitGame NewGame ClickSquare game
+        InGame player game ->
+            Game.view QuitGame (NewGame player) ClickSquare player game
 
 
 viewMainMenu : Element Msg
@@ -168,8 +207,10 @@ viewHostLobby url =
             ]
             (text "waiting for a pal")
         , column [ Font.size 14, spacing 8, centerX ]
-            [ paragraph [ Font.center ] [ text "(You should send them this)" ]
-            , paragraph [ Font.center ] [ text url ]
+            [ paragraph [ Font.center ]
+                [ text "(You should send them this)" ]
+            , paragraph [ Font.center ]
+                [ text url ]
             ]
         , column [ centerX ]
             [ Input.button styles.buttons.danger

@@ -6,13 +6,33 @@ module Grid exposing
     , map
     , set
     , toListOfLists
+    , encode
+    , decoder
     )
 
 import Array exposing (Array)
+import Json.Encode as E
+import Json.Decode as D exposing (Decoder)
+
 
 
 type Grid a
     = Grid (Array (Array a))
+
+
+encode : (a -> E.Value) -> Grid a -> E.Value
+encode itemEncoder (Grid rows) =
+    E.list (Array.toList >> E.list itemEncoder) (Array.toList rows)
+
+decoder : Decoder a -> Decoder (Grid a)
+decoder itemDecoder =
+    D.list (D.list itemDecoder)
+    |> D.map doThing
+    |> D.map Grid
+
+doThing : List (List a) -> Array (Array a)
+doThing =
+    List.map Array.fromList >> Array.fromList
 
 
 init : ( Int, Int ) -> a -> Grid a

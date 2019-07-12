@@ -3,6 +3,8 @@ module Game exposing
     , Game
     , GameState(..)
     , Player(..)
+    , decoder
+    , encode
     , init
     , update
     , view
@@ -13,6 +15,8 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Grid exposing (Grid)
+import Json.Decode as D exposing (Decoder)
+import Json.Encode as E
 import Style exposing (styles)
 
 
@@ -20,6 +24,90 @@ type alias Game =
     { board : Board
     , state : GameState
     }
+
+
+
+-- ENCODE
+
+
+decoder : Decoder Game
+decoder =
+    D.map2 Game
+        (D.field "board" (Grid.decoder (D.maybe playerDecoder)))
+        (D.field "state" stateDecoder)
+
+
+encode : Game -> E.Value
+encode game =
+    E.object
+        [ ( "board", Grid.encode maybePlayerEncoder game.board )
+        , ( "state", encodeGameState game.state )
+        ]
+
+
+playerDecoder : Decoder Player
+playerDecoder =
+    D.string
+        |> D.andThen
+            (\str ->
+                if str == "X" then
+                    D.succeed X
+
+                else if str == "O" then
+                    D.succeed O
+
+                else
+                    D.fail "who dat"
+            )
+
+
+maybePlayerEncoder : Maybe Player -> E.Value
+maybePlayerEncoder player =
+    case player of
+        Just p ->
+            playerEncoder p
+
+        Nothing ->
+            E.null
+
+
+playerEncoder : Player -> E.Value
+playerEncoder player =
+    E.string (toString player)
+
+
+stateDecoder : Decoder GameState
+stateDecoder =
+    D.field "type" D.string
+        |> D.andThen
+            (\t ->
+                if t == "player-turn" then
+                    D.field "value" playerDecoder
+                        |> D.map PlayerTurn
+
+                else if t == "winner" then
+                    D.field "value" (D.maybe playerDecoder)
+                        |> D.map Winner
+
+                else
+                    D.fail "who dis"
+            )
+
+
+encodeGameState : GameState -> E.Value
+encodeGameState state =
+    case state of
+        PlayerTurn player ->
+            E.object
+                [ ( "type", E.string "player-turn" )
+                , ( "value", playerEncoder player )
+                ]
+
+        Winner player ->
+            E.object
+                [ ( "type", E.string "winner" )
+                , ( "value", maybePlayerEncoder player )
+                ]
 
 
 type alias Board =
@@ -112,8 +200,8 @@ haveSamePlayer board locations =
         |> (\values -> List.all ((==) (Just X)) values || List.all ((==) (Just O)) values)
 
 
-view : msg -> msg -> (Player -> ( Int, Int ) -> msg) -> Game -> Element msg
-view quitGame newGame onClick game =
+view : msg -> msg -> (Player -> ( Int, Int ) -> msg) -> Player -> Game -> Element msg
+view quitGame newGame onClick u game =
     column
         [ centerX
         , centerY
@@ -123,10 +211,20 @@ view quitGame newGame onClick game =
         [ case game.state of
             PlayerTurn player ->
                 column [ spacing 24, centerX ]
-                    [ el [ Font.size 20, Font.semiBold ] (text ("Player " ++ toString player ++ "'s move"))
+                    [ el [ Font.size 20, Font.semiBold, centerX ]
+                        (text
+                            ((if u == player then
+                                "your"
+
+                              else
+                                "their"
+                             )
+                                ++ " move"
+                            )
+                        )
                     , column [ centerX, Border.width 1 ]
                         (List.indexedMap
-                            (viewRow (onClick player))
+                            (viewRow (u == player) (onClick player))
                             (Grid.toListOfLists game.board)
                         )
                     ]
@@ -137,7 +235,10 @@ view quitGame newGame onClick game =
                         (text <|
                             case winner of
                                 Just player ->
-                                    "Player " ++ toString player ++ ", you won!"
+                                    if u == player then
+                                        "You won!"
+                                    else
+                                        "You lose, heheh."
 
                                 Nothing ->
                                     "Tie game!"
@@ -158,19 +259,24 @@ view quitGame newGame onClick game =
         ]
 
 
-viewRow : (( Int, Int ) -> msg) -> Int -> List (Maybe Player) -> Element msg
-viewRow onClick y row =
-    Element.row [] (List.indexedMap (viewSquare onClick y) row)
+viewRow : Bool -> (( Int, Int ) -> msg) -> Int -> List (Maybe Player) -> Element msg
+viewRow isYourTurn onClick y row =
+    Element.row [] (List.indexedMap (viewSquare isYourTurn onClick y) row)
 
 
-viewSquare : (( Int, Int ) -> msg) -> Int -> Int -> Maybe Player -> Element msg
-viewSquare onClick y x value =
+viewSquare : Bool -> (( Int, Int ) -> msg) -> Int -> Int -> Maybe Player -> Element msg
+viewSquare isYourTurn onClick y x value =
     Input.button
         [ width (px 48)
         , height (px 48)
         , Border.width 1
         ]
-        { onPress = Just (onClick ( x, y ))
+        { onPress =
+            if isYourTurn then
+                Just (onClick ( x, y ))
+
+            else
+                Nothing
         , label =
             el
                 [ centerX

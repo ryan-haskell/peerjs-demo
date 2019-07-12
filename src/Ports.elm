@@ -1,32 +1,47 @@
 port module Ports exposing
-    ( hostGame
+    ( IncomingMessage(..)
     , fromJs
-    , IncomingMessage(..)
+    , hostGame
     , readyUp
+    , sendGame
     )
 
-import Json.Encode as Json
+import Game exposing (Game)
 import Json.Decode as D exposing (Decoder)
+import Json.Encode as Json
+
+
 
 -- INCOMING
 
+
 port incoming : (Json.Value -> msg) -> Sub msg
+
 
 decoder : Decoder IncomingMessage
 decoder =
     D.field "action" D.string
-    |> D.andThen (\action ->
-        case action of
-            "HOST_URL" ->
-                D.map HostUrl (D.field "url" D.string)
-            "FRIEND_READY" ->
-                D.map FriendReady (D.field "id" D.string)
-            _ ->
-                D.fail ("Did not recognize action: " ++ action)
-    )
+        |> D.andThen
+            (\action ->
+                case action of
+                    "HOST_URL" ->
+                        D.map HostUrl (D.field "payload" D.string)
+
+                    "FRIEND_READY" ->
+                        D.map FriendReady (D.field "payload" D.string)
+
+                    "GAME_RECEIVED" ->
+                        D.map GameReceived (D.field "payload" D.value)
+
+                    _ ->
+                        D.fail ("Did not recognize action: " ++ action)
+            )
+
+
 type IncomingMessage
     = HostUrl String
     | FriendReady String
+    | GameReceived Json.Value
     | GotTrash
 
 
@@ -36,13 +51,21 @@ fromJs handler =
         (\json ->
             case D.decodeValue decoder json of
                 Ok message ->
-                    (handler message)
-                Err _ ->
-                    (handler GotTrash)
+                    handler message
+
+                Err reason ->
+                    let
+                        _ =
+                            (Debug.log "INCOMING ERROR" reason)
+
+                    in
+                    handler GotTrash
         )
 
 
+
 -- OUTGOING
+
 
 port outgoing :
     { action : String
@@ -58,9 +81,18 @@ hostGame =
         , payload = Json.null
         }
 
+
 readyUp : String -> Cmd msg
 readyUp id =
     outgoing
         { action = "READY_UP"
         , payload = Json.string id
+        }
+
+
+sendGame : Game -> Cmd msg
+sendGame game =
+    outgoing
+        { action = "SEND_GAME"
+        , payload = Game.encode game
         }
