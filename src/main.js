@@ -1,7 +1,6 @@
 import { Elm } from './Main.elm'
 
-const config = {
-}
+const config = {}
 
 const send = (conn, msg) => _ => {
   conn.send(msg)
