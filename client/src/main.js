@@ -1,10 +1,6 @@
 import { Elm } from './Main.elm'
 
 const config = {
-  secure: process.env.PEERJS_SECURE === 'true',
-  host: process.env.PEERJS_HOST || 'localhost',
-  port: parseInt(process.env.PEERJS_PORT) || 9000,
-  path: process.env.PEERJS_PATH || '/'
 }
 
 const send = (conn, msg) => _ => {
