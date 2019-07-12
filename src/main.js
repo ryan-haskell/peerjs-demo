@@ -8,22 +8,26 @@ const send = (conn, msg) => _ => {
 }
 
 window.rtc = {
-  host: ({ id, onData, onUrl }) => {
-    const peer = new window.Peer(id, config)
-    peer.on('open', function (id) {
-      const { host, protocol } = window.location
-      const url = `${protocol}//${host}?id=${id}`
-      onUrl(url)
-    })
-    peer.on('connection', function (conn) {
-      conn.on('open', function () {
-        // Receive messages
-        conn.on('data', onData)
-        // Send messages
-        window.requestAnimationFrame(send(conn, 'Hello from server!'))
+  host: ({ id, onData }) =>
+    new Promise((resolve, reject) => {
+      const peer = new window.Peer(id, config)
+      peer.on('open', function (id) {
+        const { host, protocol } = window.location
+        const url = `${protocol}//${host}?id=${id}`
+        resolve(url)
       })
-    })
-  },
+      peer.on('error', function (err) {
+        reject(err)
+      })
+      peer.on('connection', function (conn) {
+        conn.on('open', function () {
+          // Receive messages
+          conn.on('data', onData)
+          // Send messages
+          window.requestAnimationFrame(send(conn, 'Hello from server!'))
+        })
+      })
+  }),
   join: ({ id, serverId, onData }) => {
     const peer = new window.Peer(id, config)
     const conn = peer.connect(serverId)
@@ -37,24 +41,26 @@ window.rtc = {
 }
 
 const start = () => {
-  const serverId = window.location.search.slice('?id='.length) || undefined
-  const isServer = serverId === undefined
+  const serverId = window.location.search.slice('?id='.length) || null
 
   const app = Elm.Main.init({
-    node: document.getElementById('app')
+    node: document.getElementById('app'),
+    flags: {
+      id: serverId
+    }
   })
 
-  // if (isServer) {
-  //   rtc.host({ onUrl: console.log, onData: console.log })
-  // } else {
-  //   rtc.join({ id: serverId, onData: console.log })
-  // }
+  app.ports.outgoing.subscribe(function (msg) {
+    switch (msg) {
+      case 'HOST_GAME':
+        rtc.host({
+          id: Date.now(),
+          onData: console.log
+        })
+          .then(url => app.ports.incoming.send(url))
+          .catch(console.error)
+    }
+  })
 }
 
 start()
-
-window.rtc.host({
-  id: Date.now(),
-  onData: console.log,
-  onUrl: console.log
-})
